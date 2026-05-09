@@ -4,6 +4,13 @@ import {
   getFirestore, collection, onSnapshot,
   doc, setDoc, deleteDoc, getDocs
 } from "firebase/firestore";
+import emailjs from "@emailjs/browser";
+
+// ─── EmailJS Config ───────────────────────────────────────────────────────────
+const EMAILJS_SERVICE  = "service_0ly7032";
+const EMAILJS_TEMPLATE = "template_uxgvyyi";
+const EMAILJS_KEY      = "oSlSDhK9MmvGLYSuC";
+emailjs.init(EMAILJS_KEY);
 
 // ─── Firebase Config ─────────────────────────────────────────────────────────
 const firebaseConfig = {
@@ -126,6 +133,24 @@ export default function App() {
     else { setModal("reserve"); setReserveForm({ from: "09:00", to: "12:00", purpose: "", notes: "" }); }
   };
 
+  // ── Email notification ─────────────────────────────────────────────────────
+  const sendEmailNotification = async (res) => {
+    try {
+      await emailjs.send(EMAILJS_SERVICE, EMAILJS_TEMPLATE, {
+        userName:  res.userName,
+        unit:      res.unit,
+        date:      res.date,
+        from:      res.from,
+        to:        res.to,
+        purpose:   res.purpose,
+        notes:     res.notes || "Sin notas",
+        createdAt: new Date(res.createdAt).toLocaleString("es-AR"),
+      });
+    } catch (err) {
+      console.error("Error enviando email:", err);
+    }
+  };
+
   // ── Reserve ────────────────────────────────────────────────────────────────
   const handleReserve = async () => {
     if (!reserveForm.purpose.trim()) { notify("Por favor indicá el motivo del evento.", "error"); return; }
@@ -147,6 +172,7 @@ export default function App() {
       paid: false,
     };
     await saveReservation(newRes);
+    await sendEmailNotification(newRes);
     setModal(null);
     notify("✓ Reserva realizada correctamente.");
   };
